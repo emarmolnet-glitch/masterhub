@@ -418,6 +418,24 @@
         return normalized;
     }
 
+    function isSubordinatedIframe() {
+        try {
+            if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+                return true;
+            }
+            if (globalObject && globalObject.parent && globalObject.parent !== globalObject) {
+                return true;
+            }
+            return false;
+        } catch (_error) {
+            return true;
+        }
+    }
+
+    function hasPreexistingReference() {
+        return Boolean(activeCachedReference || readUrlReference() || readSessionReference());
+    }
+
     function getActiveContractRef() {
         const fromUrl = readUrlReference();
         if (fromUrl) {
@@ -436,6 +454,9 @@
         }
         if (activeCachedReference) {
             return activeCachedReference;
+        }
+        if (isSubordinatedIframe()) {
+            return null;
         }
         const generated = generateVoyageRef();
         activeCachedReference = generated;
@@ -484,10 +505,17 @@
     }
 
     function createNewReference(force = false) {
+        if (isSubordinatedIframe() && !hasPreexistingReference() && !force) {
+            return null;
+        }
         if (isInjectionLocked && !force) {
             return getActiveContractRef();
         }
-        return persistReference(generateNextVoyageRef(getActiveContractRef()), true);
+        const currentRef = getActiveContractRef();
+        if (!currentRef && isSubordinatedIframe() && !force) {
+            return null;
+        }
+        return persistReference(generateNextVoyageRef(currentRef || ''), true);
     }
 
     function extractCurrentVoyageReference() {
@@ -618,6 +646,24 @@
     try {
         if (globalObject.location || globalObject.document) {
             initializeOnMount();
+        }
+    } catch (_error) {}
+
+    function handleWindowMessage(event) {
+        if (!event || !event.data) return;
+        if (event.data.type === 'MASTER_FORCE_REFERENCE') {
+            const forcedRef = event.data.reference || event.data.contractRef || event.data.payload?.reference;
+            if (forcedRef) {
+                setActiveContractRef(forcedRef);
+            }
+        }
+    }
+
+    try {
+        if (typeof globalObject.addEventListener === 'function') {
+            globalObject.addEventListener('message', handleWindowMessage);
+        } else if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+            window.addEventListener('message', handleWindowMessage);
         }
     } catch (_error) {}
 

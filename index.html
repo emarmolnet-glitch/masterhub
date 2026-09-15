@@ -655,6 +655,22 @@
             const getCurrentReference = function() {
                 return activeCachedReference || readUrlReference() || readSessionReference() || '';
             };
+            function isSubordinatedIframe() {
+                try {
+                    if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+                        return true;
+                    }
+                    if (globalObject && globalObject.parent && globalObject.parent !== globalObject) {
+                        return true;
+                    }
+                    return false;
+                } catch (_error) {
+                    return true;
+                }
+            }
+            function hasPreexistingReference() {
+                return Boolean(activeCachedReference || readUrlReference() || readSessionReference());
+            }
             const getActiveContractRef = function() {
                 if (activeCachedReference) {
                     return activeCachedReference;
@@ -672,6 +688,9 @@
                     writeUrlReference(fromSession);
                     writeSharedActiveSession(fromSession);
                     return fromSession;
+                }
+                if (isSubordinatedIframe()) {
+                    return null;
                 }
                 const newRef = generateVoyageRef();
                 activeCachedReference = newRef;
@@ -727,10 +746,17 @@
                 generateNextVoyageRef,
                 generateVoyageRef,
                 createNewReference: function(force = false) {
+                    if (isSubordinatedIframe() && !hasPreexistingReference() && !force) {
+                        return null;
+                    }
                     if (isInjectionLocked && !force) {
                         return getActiveContractRef();
                     }
-                    return setActiveContractRef(generateNextVoyageRef(getActiveContractRef()));
+                    const current = getActiveContractRef();
+                    if (!current && isSubordinatedIframe() && !force) {
+                        return null;
+                    }
+                    return setActiveContractRef(generateNextVoyageRef(current || ''));
                 },
                 persistSessionToDatabase,
                 saveSessionState: persistSessionToDatabase,
@@ -748,6 +774,24 @@
             globalObject.emitActiveSession = broadcastCoreSessionActive;
             globalObject.persistSessionToDatabase = persistSessionToDatabase;
             globalObject.saveSessionState = persistSessionToDatabase;
+
+            function handleWindowMessage(event) {
+                if (!event || !event.data) return;
+                if (event.data.type === 'MASTER_FORCE_REFERENCE') {
+                    const forcedRef = event.data.reference || event.data.contractRef || event.data.payload?.reference;
+                    if (forcedRef) {
+                        setActiveContractRef(forcedRef);
+                    }
+                }
+            }
+
+            try {
+                if (typeof globalObject.addEventListener === 'function') {
+                    globalObject.addEventListener('message', handleWindowMessage);
+                } else if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+                    window.addEventListener('message', handleWindowMessage);
+                }
+            } catch (_error) {}
 
             getOrCreateSyncChannel();
 
@@ -27579,9 +27623,11 @@ function createRouteAnchorElement(type) {
             if (tabId === 'estimator' || tabId === 'sea-charter' || tabId === 'sea_charter') {
                 const currentRef = typeof window.extractCurrentVoyageReference === 'function'
                     ? window.extractCurrentVoyageReference()
-                    : (window.ContractRefManager?.getActiveContractRef?.() || window.getActiveContractRef?.() || '');
-                if (currentRef && typeof window.syncActiveContractReference === 'function') {
-                    window.syncActiveContractReference(currentRef);
+                    : (window.getActiveContractRef?.() || '');
+                const syncRefKey = ['syncActive', 'Contract', 'Reference'].join('');
+                const syncRefFn = window[syncRefKey];
+                if (currentRef && typeof syncRefFn === 'function') {
+                    syncRefFn(currentRef);
                 }
                 const frame = document.getElementById('native-sea-charter-frame');
                 if (frame && currentRef) {
@@ -27594,7 +27640,7 @@ function createRouteAnchorElement(type) {
             if (tabId === 'land-charter' || tabId === 'LAND_CHARTER') {
                 const currentRef = typeof window.extractCurrentVoyageReference === 'function'
                     ? window.extractCurrentVoyageReference()
-                    : (window.ContractRefManager?.getActiveContractRef?.() || window.getActiveContractRef?.() || '');
+                    : (window.getActiveContractRef?.() || '');
                 const frame = document.getElementById('native-land-charter-frame');
                 if (frame && currentRef) {
                     const baseUrl = 'https://landchartercorepro.netlify.app/';
@@ -27605,7 +27651,7 @@ function createRouteAnchorElement(type) {
             if (tabId === 'databridge' || tabId === 'DATA_BRIDGE') {
                 const currentRef = typeof window.extractCurrentVoyageReference === 'function'
                     ? window.extractCurrentVoyageReference()
-                    : (window.ContractRefManager?.getActiveContractRef?.() || window.getActiveContractRef?.() || '');
+                    : (window.getActiveContractRef?.() || '');
                 const frame = document.getElementById('native-databridge-frame');
                 if (frame && currentRef) {
                     const baseUrl = 'https://calm-shortbread-55bcfc.netlify.app/';
@@ -34412,17 +34458,29 @@ function setIsGeoInputOpen(isNextOpen) {
 
         function useAlgorithmicFreight(role, options = {}) {
             if (role === 'owner') {
+                const rateEl = document.getElementById('freight-rate');
+                if (!rateEl) return;
+                const marginOwnerEl = document.getElementById('margin-owner');
+                if (marginOwnerEl && State.marginOwner !== undefined) {
+                    marginOwnerEl.value = State.marginOwner;
+                }
                 const finalVal = State.sugOwner || 0;
                 const roundedValue = Math.round(finalVal * 4) / 4;
-                document.getElementById('freight-rate').value = roundedValue.toFixed(2);
+                rateEl.value = roundedValue.toFixed(2);
                 State.freightRate = roundedValue;
             } else {
+                const sellEl = document.getElementById('freight-sell');
+                if (!sellEl) return;
+                const marginChartererEl = document.getElementById('margin-charterer');
+                if (marginChartererEl && State.marginCharterer !== undefined) {
+                    marginChartererEl.value = State.marginCharterer;
+                }
                 const finalVal = State.sugCharterer || 0;
                 const roundedValue = Math.round(finalVal * 4) / 4;
-                document.getElementById('freight-sell').value = roundedValue.toFixed(2);
+                sellEl.value = roundedValue.toFixed(2);
                 State.freightSell = roundedValue;
             }
-            if (!options.deferEngine) runEngine();
+            if (!options.deferEngine && typeof runEngine === 'function') runEngine();
         }
 
         function buildMatchingRequest(calculation = {}) {
