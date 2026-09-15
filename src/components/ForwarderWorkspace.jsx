@@ -1938,14 +1938,29 @@ export function ForwarderWorkspace() {
 
   handleSyncCalculatorDataRef.current = handleSyncCalculatorData;
 
-  const handleCreateProject = async () => {
-    const input = window.prompt('Introduce el nombre del cliente para el nuevo proyecto:');
-    if (!input || !input.trim()) return;
+  const handleCreateProject = async (e) => {
+    // 🛡️ BLINDAJE: Bloquear ejecución si el evento no es humano o si la IA está inyectando / la página cargando
+    if (e && e.isTrusted === false) return;
+    if (typeof window !== 'undefined' && (window.__AI_UPDATE_FIELDS_IN_PROGRESS__ || window.__IS_PAGE_LOADING__)) {
+      return;
+    }
+
+    let input = null;
+    try {
+      input = window.prompt('Introduce el nombre del cliente para el nuevo proyecto:');
+    } catch (_) {
+      return;
+    }
+
+    // Abortar silenciosamente si el usuario cancela o devuelve texto vacío; NO llamar al endpoint
+    if (!input || !String(input).trim()) return;
+
     setIsCreating(true);
     try {
       const res = await fetch(getApiUrl('/.netlify/functions/forwarder-projects'), {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ client_name: input.trim(), documents: [] }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ client_name: String(input).trim(), documents: [] }),
       });
       if (!res.ok) throw new Error();
       const payload = await res.json();

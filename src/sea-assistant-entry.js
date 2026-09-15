@@ -676,6 +676,9 @@ function clickActionableAiFinalValidationButton() {
 }
 
 async function executeActionableAiUpdateFields(actionObj) {
+    if (typeof window !== 'undefined') {
+        window.__AI_UPDATE_FIELDS_IN_PROGRESS__ = true;
+    }
     console.group("🧩 [Cerebro.ia/update_fields] Procesando actualización múltiple universal y precisa");
     console.log("Objeto de acción recibido:", actionObj);
     try {
@@ -1021,6 +1024,9 @@ async function executeActionableAiUpdateFields(actionObj) {
         console.error("❌ [Cerebro.ia/update_fields] Error no controlado durante la inyección", { actionObj, error });
         throw error;
     } finally {
+        if (typeof window !== 'undefined') {
+            window.__AI_UPDATE_FIELDS_IN_PROGRESS__ = false;
+        }
         console.groupEnd();
     }
 }
