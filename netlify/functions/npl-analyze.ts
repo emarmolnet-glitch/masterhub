@@ -171,7 +171,7 @@ async function extractTechnicalVessel(body: NplRequest, text: string) {
     input: [
       {
         role: "system",
-        content: "Eres un extractor técnico marítimo para SeaCharter Core PRO. Devuelve exclusivamente JSON. Prioriza nombre del buque, IMO, DWT, tipo, bandera, código de país ISO 3166-1 Alfa-2 de la bandera y año de construcción. flag debe contener el país y flagAlpha2 sus dos letras en mayúsculas. Conserva cualquier otra especificación visible dentro de specifications. Usa string vacío o 0 si un dato no aparece.",
+        content: "Eres un extractor técnico marítimo para MasterHub Core PRO. Devuelve exclusivamente JSON. Prioriza nombre del buque, IMO, DWT, tipo, bandera, código de país ISO 3166-1 Alfa-2 de la bandera y año de construcción. flag debe contener el país y flagAlpha2 sus dos letras en mayúsculas. Conserva cualquier otra especificación visible dentro de specifications. Usa string vacío o 0 si un dato no aparece.",
       },
       { role: "user", content: userContent },
     ],

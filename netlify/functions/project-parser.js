@@ -2790,7 +2790,7 @@ function calculateFinancialBreakdown(items = [], orderTotals, charteringAssessme
   const formatCurrency = (val) => `${currency === 'USD' ? '$' : ''}${Number(val || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
   const summaryLines = [
-    `📊 DESGLOSE FINANCIERO SEPARADO (SEACHARTER CORE PRO):`,
+    `📊 DESGLOSE FINANCIERO SEPARADO (MasterHub Core PRO):`,
     `🌊 Subtotal Flete Marítimo / TCE: ${formatCurrency(oceanFreightSubtotal)} (${isUnderThreshold ? 'Grupaje LCL' : 'Fletamento Completo'}) · ${flete_unitario_usd_mt.toFixed(2)} USD/MT`,
     `🏗️ Subtotal Costes FOB y Operativa Portuaria: ${formatCurrency(fobPortOperationsSubtotal)} (Manipulación muelle, estiba/trincaje, tasas, seguro y servicios asociados)`,
     `💵 Ratios Unitarios Operativos (USD/MT):`,
@@ -3350,7 +3350,7 @@ export async function handler(req, context) {
       },
     });
 
-    const prompt = `Eres el motor experto de inteligencia logística, estiba y fletamentos marítimos para SeaCharter Core PRO.
+    const prompt = `Eres el motor experto de inteligencia logística, estiba y fletamentos marítimos para MasterHub Core PRO.
 Analiza exhaustivamente el documento adjunto o la orden en lenguaje natural / texto plano enviada desde el widget conversacional.
 
 DETECCIÓN AUTOMÁTICA DE IDIOMAS Y NORMALIZACIÓN LOGÍSTICA:

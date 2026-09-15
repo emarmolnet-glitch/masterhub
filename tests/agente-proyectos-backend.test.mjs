@@ -26,7 +26,7 @@ const stubbedModule = [
                   candidates: [{
                     content: { parts: [{ text: "¡Hola! ¿En qué puedo colaborar hoy en tu proyecto marítimo?" }] },
                     groundingMetadata: {
-                      webSearchQueries: ["SeaCharter Core PRO"],
+                      webSearchQueries: ["MasterHub Core PRO"],
                       groundingChunks: [{ web: { uri: "https://seacharter.com", title: "SeaCharter" } }]
                     }
                   }]
@@ -70,7 +70,7 @@ test('2. buildAgenteProyectosSystemInstruction includes REGLA CERO, behavioral r
 
   const prompt = buildAgenteProyectosSystemInstruction(sampleContext);
 
-  assert.match(prompt, /Eres el Agente de Proyectos de SeaCharter Core PRO, impulsado por Gemini\./);
+  assert.match(prompt, /Eres el Agente de Proyectos de MasterHub Core PRO, impulsado por Gemini\./);
   assert.match(prompt, /Eres un consultor estratégico marítimo y un socio conversacional altamente inteligente\./);
   assert.match(prompt, /REGLA CERO - SALUDOS Y MENSAJES CASUALES:/);
   assert.match(prompt, /¡PROHIBIDO! No escupas desgloses financieros, costes ni datos del JSON/);

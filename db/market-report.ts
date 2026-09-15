@@ -159,7 +159,7 @@ export function assembleExecutiveNarrative(
     riskNote = "Las zonas de riesgo de guerra ZWC y congestión portuaria permanecen bajo monitoreo estándar sin disrupciones críticas adicionales.";
   }
 
-  return `Durante los últimos 7 días, el motor de inteligencia de **SeaCharter Core PRO** ha auditado e hiper-indexado **${totalSimulations} simulaciones y cotizaciones operativas**. El mercado registra una tarifa media global All-In Gross de **$${globalAvgFreight.toFixed(2)}/TM** y un TCE promedio de **$${globalAvgTce.toLocaleString("en-US")}/día**. ${trendAnalysis} ${repositioningNote} ${riskNote}`;
+  return `Durante los últimos 7 días, el motor de inteligencia de **MasterHub Core PRO** ha auditado e hiper-indexado **${totalSimulations} simulaciones y cotizaciones operativas**. El mercado registra una tarifa media global All-In Gross de **$${globalAvgFreight.toFixed(2)}/TM** y un TCE promedio de **$${globalAvgTce.toLocaleString("en-US")}/día**. ${trendAnalysis} ${repositioningNote} ${riskNote}`;
 }
 
 export async function aggregateLast7DaysMarketData(): Promise<MarketReportData> {

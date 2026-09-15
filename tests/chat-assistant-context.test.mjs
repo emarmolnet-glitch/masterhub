@@ -87,7 +87,7 @@ test('chat assistant builds a dynamic maritime risk audit instruction', () => {
 });
 
 test('chat assistant injects the Neon ecosystem dictionary and exposes safe tool calling', () => {
-  assert.match(dataBridgeToolingSource, /Eres el cerebro analítico de SeaCharter Core PRO/);
+  assert.match(dataBridgeToolingSource, /Eres el cerebro analítico de MasterHub Core PRO/);
   assert.match(dataBridgeToolingSource, /Data Bridge \(Neon PostgreSQL\)/);
   assert.match(dataBridgeToolingSource, /bunker_prices_log/);
   assert.match(dataBridgeToolingSource, /market_spot_rates/);

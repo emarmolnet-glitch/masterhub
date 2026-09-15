@@ -37,7 +37,7 @@ test('FAQ modal matches the Data Bridge help layout and required Core PRO guides
     assert.match(html, /onclick="exportFaqToPdf\(\)"/);
 
     // Sidebar and content header
-    assert.match(html, /SEACHARTER CORE PRO/);
+    assert.match(html, /MasterHub Core PRO/);
     assert.match(html, /bg-\[#0f172a\]/);
     assert.match(html, /CENTRO DE AYUDA/);
     assert.match(html, /<h1[^>]*>FAQ y Guía de Uso<\/h1>/);

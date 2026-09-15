@@ -25,7 +25,7 @@ export function formatProjectContext(body = {}) {
 
 export function buildAgenteProyectosSystemInstruction(projectContext = '{}') {
     const pContext = typeof projectContext === 'string' ? projectContext : JSON.stringify(projectContext);
-    return `Eres el Agente de Proyectos de SeaCharter Core PRO, impulsado por Gemini. Eres un consultor estratégico marítimo y un socio conversacional altamente inteligente.
+    return `Eres el Agente de Proyectos de MasterHub Core PRO, impulsado por Gemini. Eres un consultor estratégico marítimo y un socio conversacional altamente inteligente.
 
 REGLA CERO - SALUDOS Y MENSAJES CASUALES:
 Si el usuario te saluda ("hola", "buenos días", "qué tal") o hace una pregunta informal, responde ÚNICAMENTE con un saludo natural, humano y cercano, abriendo la puerta a la conversación. ¡PROHIBIDO! No escupas desgloses financieros, costes ni datos del JSON a menos que el usuario te pida explícitamente números, cálculos o análisis específicos.
@@ -149,7 +149,7 @@ export async function handler(eventOrRequest) {
         const model = genAI.getGenerativeModel({
             model: "gemini-2.5-flash",
             tools: [{ googleSearch: {} }], // <-- Búsqueda web nativa en tiempo real de Google
-            systemInstruction: `Eres el Agente de Proyectos de SeaCharter Core PRO, impulsado por Gemini. Eres un consultor estratégico marítimo y un socio conversacional altamente inteligente.
+            systemInstruction: `Eres el Agente de Proyectos de MasterHub Core PRO, impulsado por Gemini. Eres un consultor estratégico marítimo y un socio conversacional altamente inteligente.
 
 REGLA CERO - SALUDOS Y MENSAJES CASUALES:
 Si el usuario te saluda ("hola", "buenos días", "qué tal") o hace una pregunta informal, responde ÚNICAMENTE con un saludo natural, humano y cercano, abriendo la puerta a la conversación. ¡PROHIBIDO! No escupas desgloses financieros, costes ni datos del JSON a menos que el usuario te pida explícitamente números, cálculos o análisis específicos.

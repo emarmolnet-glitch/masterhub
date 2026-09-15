@@ -18,11 +18,11 @@ test("Market Report: db/market-report.ts contains cargo classification and dynam
   assert.match(marketReportTs, /Supramax \/ Kamsarmax/);
 });
 
-test("Market Report: db/market-report-template.ts applies SeaCharter Core PRO authorship and clean light design without dark backgrounds", () => {
+test("Market Report: db/market-report-template.ts applies MasterHub Core PRO authorship and clean light design without dark backgrounds", () => {
   const templateTs = fs.readFileSync(path.join(process.cwd(), "db/market-report-template.ts"), "utf8");
 
   assert.match(templateTs, /export function buildMarketReportHtmlTemplate/);
-  assert.match(templateTs, /SeaCharter Core PRO/);
+  assert.match(templateTs, /MasterHub Core PRO/);
   assert.doesNotMatch(templateTs, /Rodahmar Shipping/); // Rodahmar removed as issuer
   assert.match(templateTs, /#00875A/); // Emerald Green accent
   assert.match(templateTs, /background:\s*#FFFFFF/); // Clean white header/card styling

@@ -37,7 +37,7 @@ export default async (request: Request) => {
     segment: parameters.segment,
     speedBallast: parameters.speedBallast,
     speedLaden: parameters.speedLaden,
-    source: "SeaCharter Core PRO historical fleet average",
+    source: "MasterHub Core PRO historical fleet average",
     sampleSize: parameters.sampleSize,
     inferred: true,
   });

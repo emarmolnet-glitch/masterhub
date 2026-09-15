@@ -83,7 +83,7 @@ export function buildMarketReportHtmlTemplate(data: MarketReportData): string {
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>SeaCharter Core PRO - Market Report - ${data.reportId}</title>
+  <title>MasterHub Core PRO - Market Report - ${data.reportId}</title>
   <style>
     @page {
       size: A4;
@@ -485,7 +485,7 @@ export function buildMarketReportHtmlTemplate(data: MarketReportData): string {
     <div class="header-logo-group">
       <div class="header-logo-badge">SC</div>
       <div class="header-brand">
-        <h1>SeaCharter Core PRO</h1>
+        <h1>MasterHub Core PRO</h1>
         <p>Maritime Intelligence & Market Analytics Engine</p>
       </div>
     </div>
@@ -587,7 +587,7 @@ export function buildMarketReportHtmlTemplate(data: MarketReportData): string {
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-left">
-        <strong>SeaCharter Core PRO</strong> · Engine de Inteligencia Marítima & Analytics
+        <strong>MasterHub Core PRO</strong> · Engine de Inteligencia Marítima & Analytics
       </div>
       <div class="footer-right">
         Informe certificado de inteligencia de mercado · Sello de Auditoría Autenticado

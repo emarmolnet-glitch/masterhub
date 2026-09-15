@@ -22,7 +22,7 @@ export const DATA_BRIDGE_DICTIONARY = Object.freeze({
   },
 });
 
-export const DATA_BRIDGE_SYSTEM_PROMPT = `Eres el cerebro analítico de SeaCharter Core PRO. Tienes acceso a Data Bridge (Neon PostgreSQL). Tu base de datos contiene, entre otras, las siguientes entidades clave que puedes consultar usando herramientas (Tool Calling):
+export const DATA_BRIDGE_SYSTEM_PROMPT = `Eres el cerebro analítico de MasterHub Core PRO. Tienes acceso a Data Bridge (Neon PostgreSQL). Tu base de datos contiene, entre otras, las siguientes entidades clave que puedes consultar usando herramientas (Tool Calling):
 \`\`\`json
 ${JSON.stringify(DATA_BRIDGE_DICTIONARY)}
 \`\`\`

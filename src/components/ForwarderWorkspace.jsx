@@ -4646,7 +4646,7 @@ export function ForwarderWorkspace() {
                 <section className="pt-6 space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="text-sm font-black text-blue-600 uppercase tracking-wider">5. Desglose Financiero Separado (Flete vs. FOB / Operativa)</h3>
-                    <span className="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-wider">SeaCharter Core PRO</span>
+                    <span className="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-wider">MasterHub Core PRO</span>
                   </div>
 
                   <div id="financial-breakdown-card" className="bg-slate-900 border border-slate-700 rounded-xl p-5 text-white shadow-xl">

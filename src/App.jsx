@@ -210,7 +210,7 @@ export function executeImoHydration(imoValue) {
 }
 
 /**
- * Global BroadcastChannel synchronization hook for SeaCharter Core PRO.
+ * Global BroadcastChannel synchronization hook for MasterHub Core PRO.
  * Listens for PING_SESSION events from Data Bridge or other tabs/windows
  * and responds with the active voyage/contract session reference.
  */
@@ -581,7 +581,7 @@ export function setStoredHeaderVisibility(visible) {
 }
 
 /**
- * Global Header Visibility management hook for SeaCharter Core PRO.
+ * Global Header Visibility management hook for MasterHub Core PRO.
  * Keeps state in sync with localStorage, DOM layout, and window resize events.
  */
 export function useHeaderVisibility(defaultVisible = true) {
@@ -664,7 +664,7 @@ export function useHeaderVisibility(defaultVisible = true) {
 }
 
 /**
- * Main Application / Layout wrapper component for SeaCharter Core PRO.
+ * Main Application / Layout wrapper component for MasterHub Core PRO.
  */
 export function AppLayout({ children, currentView: initialView = 'MAP', defaultHeaderVisible = true }) {
   useSeaCharterSync();

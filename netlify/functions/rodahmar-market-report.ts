@@ -79,7 +79,7 @@ export default async (req: Request) => {
     return Response.json(
       {
         success: false,
-        error: "Error al generar el SeaCharter Core PRO Market Report.",
+        error: "Error al generar el MasterHub Core PRO Market Report.",
         details: error instanceof Error ? error.message : String(error),
       },
       {

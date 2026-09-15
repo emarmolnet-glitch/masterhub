@@ -68,7 +68,7 @@
   },
   "build": {
     "appId": "com.seacharter.corepro",
-    "productName": "SeaCharter Core PRO",
+    "productName": "MasterHub Core PRO",
     "directories": {
       "output": "dist_electron"
     },

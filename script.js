@@ -1,9 +1,9 @@
 /** 
-* SeaCharter Core PRO - Ultimate Matching Engine 
+* MasterHub Core PRO - Ultimate Matching Engine 
 * Integration: Geofencing, Trust (GOLD/SILVER/BRONZE) and Operational Diagnostics. 
 */
 
-console.log("SeaCharter Core PRO: Ultimate Engine Loaded.");
+console.log("MasterHub Core PRO: Ultimate Engine Loaded.");
 
 // 1. DISTANCE CALCULATION (GEOFENCING)
 function calculateDistanceNM(lat1, lon1, lat2, lon2) { 

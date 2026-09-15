@@ -2464,7 +2464,7 @@ export function VesselPricingRouter({
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
             Router de pricing por DWT
           </p>
-          <h1 className="mt-1 text-xl font-black text-slate-950">SeaCharter Core PRO</h1>
+          <h1 className="mt-1 text-xl font-black text-slate-950">MasterHub Core PRO</h1>
         </div>
         <label className="block min-w-[13rem]">
           <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">

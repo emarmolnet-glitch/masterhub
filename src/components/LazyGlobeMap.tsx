@@ -29,7 +29,7 @@ export function MapSkeletonFallback() {
   </div>
   
   {/* Textos */}
-  <h2 className="text-2xl font-bold tracking-wide text-white">SeaCharter Core PRO</h2>
+  <h2 className="text-2xl font-bold tracking-wide text-white">MasterHub Core PRO</h2>
   <p className="mt-3 text-sm text-cyan-400 animate-pulse font-medium">Iniciando motor cartográfico y datos AIS...</p>
   
   {/* Barra de progreso simulada */}

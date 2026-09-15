@@ -6,9 +6,9 @@ if (typeof document !== 'undefined' && document.head) {
   document.head.appendChild(link);
 }
 /**
- * SeaCharter Core PRO - Electron Main Process Orchestrator
+ * MasterHub Core PRO - Electron Main Process Orchestrator
  * This file manages the application lifecycle and coordinates the windows:
- * - SeaCharter Core PRO (Main User Interface, always visible)
+ * - MasterHub Core PRO (Main User Interface, always visible)
  * - SeaCharter Data Bridge (Background data sync module, hidden by default)
  */
 
@@ -22,11 +22,11 @@ let dataBridgeWindow = null;
 app.isQuitting = false;
 
 function createWindows() {
-  // 1. Create the main SeaCharter Core PRO window
+  // 1. Create the main MasterHub Core PRO window
   mainWindow = new BrowserWindow({
     width: 1300,
     height: 850,
-    title: "SeaCharter Core PRO - Enterprise Maritime Suite",
+    title: "MasterHub Core PRO - Enterprise Maritime Suite",
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

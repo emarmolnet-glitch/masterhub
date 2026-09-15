@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace SeaCharter.Models.MarketData
 {
     /// <summary>
-    /// Ultimos indices de mercado utilizados por SeaCharter Core PRO para refrescar cotizaciones.
+    /// Ultimos indices de mercado utilizados por MasterHub Core PRO para refrescar cotizaciones.
     /// </summary>
     public class MarketReferenceData
     {
