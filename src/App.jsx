@@ -758,38 +758,27 @@ export function AppLayout({ children, currentView: initialView = 'MAP', defaultH
     return () => window.removeEventListener('message', handleIframeMessage);
   }, [activeReference]);
 
-  // Inyección Estricta a los Iframes (Top-Down / MasterHub = Source of Truth)
-  // MasterHub inyecta proactivamente su activeReference en el parámetro ?ref= de la URL de los Iframes cada vez que se renderizan
+  // Inyección Silenciosa a los Iframes (Top-Down / MasterHub = Source of Truth)
   useEffect(() => {
     if (!activeReference) return;
 
     const iframeIds = [
-      'sea-charter-frame',
-      'native-sea-charter-frame',
-      'land-charter-frame',
-      'native-land-charter-frame',
-      'databridge-frame',
-      'native-databridge-frame'
+      'sea-charter-frame', 'native-sea-charter-frame',
+      'land-charter-frame', 'native-land-charter-frame',
+      'databridge-frame', 'native-databridge-frame'
     ];
 
-    iframeIds.forEach((id) => {
+    iframeIds.forEach(id => {
       const iframe = document.getElementById(id);
-      if (iframe && iframe.src) {
-        try {
-          const urlObj = new URL(iframe.src);
-          const currentQueryRef = urlObj.searchParams.get('ref');
-
-          // Solo actualizamos el src si la referencia es distinta para evitar bucles de recarga
-          if (currentQueryRef !== activeReference) {
-            urlObj.searchParams.set('ref', activeReference);
-            iframe.src = urlObj.toString();
-          }
-        } catch (e) {
-          // Si la URL es relativa o da error, ignorar de forma segura
-        }
+      if (iframe && iframe.contentWindow) {
+        // Enviar orden directa a los hijos para que acaten la referencia maestra
+        iframe.contentWindow.postMessage({ 
+          type: 'MASTER_FORCE_REFERENCE', 
+          reference: activeReference 
+        }, '*');
       }
     });
-  }, [activeReference, currentView]);
+  }, [activeReference]); // Se dispara cada vez que MasterHub cambia de referencia
 
   /**
    * Sincronización Manual del Dossier:

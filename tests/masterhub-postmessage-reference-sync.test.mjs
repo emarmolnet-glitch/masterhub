@@ -124,16 +124,38 @@ test('4. Functional execution of handleIframeMessage updates reference state and
   assert.equal(updateCount, 0, 'Must not update if reference is identical');
 });
 
-test('5. App.jsx propagates activeReference changes down to iframe src attributes without reload loops', () => {
+test('5. App.jsx propagates activeReference down to iframes silently via MASTER_FORCE_REFERENCE postMessage without destroying iframe state', () => {
   assert.match(appJsx, /const iframeIds = \[[\s\S]*?'sea-charter-frame'[\s\S]*?'native-land-charter-frame'[\s\S]*?'native-databridge-frame'[\s\S]*?\];/, 'Must include iframe IDs');
-  assert.match(appJsx, /currentQueryRef !== activeReference/, 'Must check currentQueryRef !== activeReference before setting src');
-  assert.match(appJsx, /urlObj\.searchParams\.set\('ref',\s*activeReference\)/, 'Must update ref query parameter in iframe URL');
+  assert.match(appJsx, /iframe\.contentWindow\.postMessage\(\{[\s\S]*?type:\s*['"]MASTER_FORCE_REFERENCE['"][\s\S]*?reference:\s*activeReference[\s\S]*?\}\s*,\s*['"]\*['"]\)/, 'Must send MASTER_FORCE_REFERENCE postMessage to iframe.contentWindow');
+  assert.doesNotMatch(appJsx, /iframe\.src\s*=/, 'Must not modify iframe.src destructively');
 
-  // Test functional execution of iframe push logic
+  // Test functional execution of silent postMessage injection logic
+  const receivedMessages = {};
   const mockIframes = {
-    'sea-charter-frame': { src: 'https://neon-seachartercorepro-4ce09d.netlify.app/?ref=REF%3A%20RDM%2F2026-0001' },
-    'native-land-charter-frame': { src: 'https://landchartercorepro.netlify.app/' },
-    'native-databridge-frame': { src: 'https://calm-shortbread-55bcfc.netlify.app/?ref=REF%3A%20RDM%2F2026-9999' },
+    'sea-charter-frame': {
+      src: 'https://neon-seachartercorepro-4ce09d.netlify.app/?ref=REF%3A%20RDM%2F2026-0001',
+      contentWindow: {
+        postMessage(msg, origin) {
+          receivedMessages['sea-charter-frame'] = { msg, origin };
+        }
+      }
+    },
+    'native-land-charter-frame': {
+      src: 'https://landchartercorepro.netlify.app/',
+      contentWindow: {
+        postMessage(msg, origin) {
+          receivedMessages['native-land-charter-frame'] = { msg, origin };
+        }
+      }
+    },
+    'native-databridge-frame': {
+      src: 'https://calm-shortbread-55bcfc.netlify.app/?ref=REF%3A%20RDM%2F2026-9999',
+      contentWindow: {
+        postMessage(msg, origin) {
+          receivedMessages['native-databridge-frame'] = { msg, origin };
+        }
+      }
+    },
   };
 
   const documentMock = {
@@ -144,40 +166,40 @@ test('5. App.jsx propagates activeReference changes down to iframe src attribute
     if (!activeReference) return;
 
     const iframeIds = [
-      'sea-charter-frame',
-      'native-sea-charter-frame',
-      'land-charter-frame',
-      'native-land-charter-frame',
-      'databridge-frame',
-      'native-databridge-frame',
+      'sea-charter-frame', 'native-sea-charter-frame',
+      'land-charter-frame', 'native-land-charter-frame',
+      'databridge-frame', 'native-databridge-frame'
     ];
 
-    iframeIds.forEach((id) => {
+    iframeIds.forEach(id => {
       const iframe = documentMock.getElementById(id);
-      if (iframe && iframe.src) {
-        try {
-          const urlObj = new URL(iframe.src);
-          const currentQueryRef = urlObj.searchParams.get('ref');
-
-          if (currentQueryRef !== activeReference) {
-            urlObj.searchParams.set('ref', activeReference);
-            iframe.src = urlObj.toString();
-          }
-        } catch (_) {}
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ 
+          type: 'MASTER_FORCE_REFERENCE', 
+          reference: activeReference 
+        }, '*');
       }
     });
   };
 
   propagateToIframes('REF: RDM/2026-7987');
 
-  assert.ok(mockIframes['sea-charter-frame'].src.includes('ref=REF%3A+RDM%2F2026-7987') || mockIframes['sea-charter-frame'].src.includes('ref=REF%3A%20RDM%2F2026-7987'));
-  assert.ok(mockIframes['native-land-charter-frame'].src.includes('ref=REF%3A+RDM%2F2026-7987') || mockIframes['native-land-charter-frame'].src.includes('ref=REF%3A%20RDM%2F2026-7987'));
-  assert.ok(mockIframes['native-databridge-frame'].src.includes('ref=REF%3A+RDM%2F2026-7987') || mockIframes['native-databridge-frame'].src.includes('ref=REF%3A%20RDM%2F2026-7987'));
+  assert.deepEqual(receivedMessages['sea-charter-frame'], {
+    msg: { type: 'MASTER_FORCE_REFERENCE', reference: 'REF: RDM/2026-7987' },
+    origin: '*'
+  });
+  assert.deepEqual(receivedMessages['native-land-charter-frame'], {
+    msg: { type: 'MASTER_FORCE_REFERENCE', reference: 'REF: RDM/2026-7987' },
+    origin: '*'
+  });
+  assert.deepEqual(receivedMessages['native-databridge-frame'], {
+    msg: { type: 'MASTER_FORCE_REFERENCE', reference: 'REF: RDM/2026-7987' },
+    origin: '*'
+  });
 
-  // Setting the same reference again must not rewrite iframe.src (avoid reload loops)
-  const previousSrc = mockIframes['sea-charter-frame'].src;
-  propagateToIframes('REF: RDM/2026-7987');
-  assert.equal(mockIframes['sea-charter-frame'].src, previousSrc);
+  // Verify that iframe.src was completely untouched
+  assert.equal(mockIframes['sea-charter-frame'].src, 'https://neon-seachartercorepro-4ce09d.netlify.app/?ref=REF%3A%20RDM%2F2026-0001');
+  assert.equal(mockIframes['native-land-charter-frame'].src, 'https://landchartercorepro.netlify.app/');
 });
 
 test('6. App.jsx exports generateMasterReference following RDM/YYYY-XXXX format', () => {
@@ -192,7 +214,7 @@ test('6. App.jsx exports generateMasterReference following RDM/YYYY-XXXX format'
 
 test('7. MasterHub autonomously initializes activeReference as Source of Truth', () => {
   assert.match(appJsx, /if\s*\(!activeReference\)\s*\{?\s*setActiveReference\(generateMasterReference\(\)\)/, 'App.jsx must ensure activeReference is generated if empty');
-  assert.match(appJsx, /\[activeReference,\s*currentView\]/, 'Iframe propagation must run on activeReference and currentView');
+  assert.match(appJsx, /\[activeReference\]/, 'Iframe silent postMessage propagation must run on [activeReference]');
 });
 
 
