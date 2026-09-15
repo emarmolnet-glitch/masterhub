@@ -391,6 +391,12 @@ function NLPInputWidget() {
       return { applied: false, reason: "empty-payload" };
     }
 
+    if (typeof window !== "undefined") {
+      window.setShowAdvancedModules?.(true);
+      window.dispatchEvent(new CustomEvent("seacharter:show-advanced-modules", { detail: { show: true } }));
+      window.dispatchEvent(new CustomEvent("assistant:order-submitted", { detail: { order: analysisText } }));
+    }
+
     let extracted;
     if (isProgrammaticRequest) {
       const normalizedPayload = normalizeScenarioPayload(injectedPayload);

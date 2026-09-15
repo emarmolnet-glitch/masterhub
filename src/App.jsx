@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { HashRouter, HashRouter as BrowserRouter } from 'react-router-dom';
 import { ForwarderWorkspace } from './components/ForwarderWorkspace.jsx';
+import { Header } from './components/Header.jsx';
+import { SeaCharterModule } from './components/SeaCharterModule.jsx';
+import { LandCharterModule } from './components/LandCharterModule.jsx';
+import { DataBridgeModule } from './components/DataBridgeModule.jsx';
+import { TurnkeyProjectBuilder } from './components/TurnkeyProjectBuilder.jsx';
 import { getApiUrl } from './utils/apiConfig.js';
 
 /**
@@ -673,6 +678,100 @@ export function AppLayout({ children, currentView: initialView = 'MAP', defaultH
 
   const [currentView, setCurrentView] = useState(initialView);
   const { isHeaderVisible, toggleHeader } = useHeaderVisibility(defaultHeaderVisible);
+  const [activeReference, setActiveReference] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return (
+        window.extractCurrentVoyageReference?.() ||
+        window.ContractRefManager?.getActiveContractRef?.() ||
+        ''
+      );
+    }
+    return '';
+  });
+  const [isSyncingDossier, setIsSyncingDossier] = useState(false);
+
+  /**
+   * Sincronización Manual del Dossier:
+   * Re-lee los datos actualizados de la Referencia activa (simula o invoca recarga
+   * de base de datos / estado global de Sea Charter y Land Charter) para que RESULTADO
+   * refleje cualquier modificación manual que el operador haya realizado.
+   */
+  const handleSyncDossier = async () => {
+    setIsSyncingDossier(true);
+    try {
+      const currentRef = typeof window !== 'undefined'
+        ? (window.extractCurrentVoyageReference?.() ||
+           window.ContractRefManager?.getActiveContractRef?.() ||
+           activeReference ||
+           'REF: RDM/2026-5647')
+        : (activeReference || 'REF: RDM/2026-5647');
+
+      setActiveReference(currentRef);
+
+      if (typeof window !== 'undefined') {
+        if (typeof window.syncActiveContractReference === 'function') {
+          window.syncActiveContractReference(currentRef);
+        }
+        if (window.ContractRefManager?.syncWithServer) {
+          await window.ContractRefManager.syncWithServer(currentRef).catch(() => {});
+        }
+        // Disparar evento para que TurnkeyProjectBuilder u otros módulos re-lean fletes y tramos terrestres
+        window.dispatchEvent(new CustomEvent('seacharter:dossier-synced', {
+          detail: { reference: currentRef, timestamp: Date.now() },
+        }));
+      }
+    } finally {
+      setTimeout(() => setIsSyncingDossier(false), 450);
+    }
+  };
+
+  /**
+   * Delegación a Sub-Agentes (Orquestación en segundo plano):
+   * Esta será la función donde el Asistente de MasterHub enviará las órdenes
+   * a los motores de Sea Charter y Land Charter en segundo plano.
+   */
+  const dispatchToSubAgents = async (promptPayload) => {
+    // TODO: Orquestación con agentes autónomos para delegar cálculo de flete marítimo (Sea Charter)
+    // y estimación de tarifas de transporte terrestre por carretera/ferrocarril (Land Charter).
+    console.log('[MasterHub Orchestrator] Delegando tareas a sub-agentes:', promptPayload);
+    return {
+      status: 'dispatched',
+      reference: activeReference,
+      timestamp: Date.now(),
+      payload: promptPayload,
+    };
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.handleSyncDossier = handleSyncDossier;
+      window.dispatchToSubAgents = dispatchToSubAgents;
+    }
+  }, [activeReference]);
+
+  useEffect(() => {
+    const handleShowAdvanced = (e) => {
+      setShowAdvancedModules(e?.detail?.show ?? true);
+    };
+    const handleAssistantOrder = () => {
+      setShowAdvancedModules(true);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('seacharter:show-advanced-modules', handleShowAdvanced);
+      window.addEventListener('assistant:order-submitted', handleAssistantOrder);
+      window.setShowAdvancedModules = (val = true) => {
+        setShowAdvancedModules(val);
+        window.dispatchEvent(new CustomEvent('seacharter:show-advanced-modules', { detail: { show: val } }));
+      };
+      window.showAdvancedModules = showAdvancedModules;
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('seacharter:show-advanced-modules', handleShowAdvanced);
+        window.removeEventListener('assistant:order-submitted', handleAssistantOrder);
+      }
+    };
+  }, [showAdvancedModules]);
 
   useEffect(() => {
     const handleViewChange = (event) => {
@@ -685,10 +784,14 @@ export function AppLayout({ children, currentView: initialView = 'MAP', defaultH
     const syncFromHash = () => {
       if (typeof window !== 'undefined' && window.location && window.location.hash) {
         const hash = window.location.hash.replace(/^#\/?/, '').toUpperCase();
-        if (hash === 'FORWARDERS' || hash === 'PROYECTOS') {
+        if (hash === 'RESULTADO' || hash === 'RESULT' || hash === 'TURNKEY') {
+          setCurrentView('RESULTADO');
+        } else if (hash === 'SEA-CHARTER' || hash === 'SEA_CHARTER' || hash === 'ESTIMATOR' || hash === 'CALCULATOR') {
+          setCurrentView('SEA_CHARTER');
+        } else if (hash === 'MAP' || hash === 'MAPA') {
+          setCurrentView('MAP');
+        } else if (hash === 'FORWARDERS') {
           setCurrentView('FORWARDERS');
-        } else if (hash === 'MAP' || hash === 'CALCULATOR') {
-          setCurrentView(hash);
         }
       }
     };
@@ -731,11 +834,34 @@ export function AppLayout({ children, currentView: initialView = 'MAP', defaultH
       >
         {isHeaderVisible ? 'Ocultar cabecera' : 'Mostrar cabecera'}
       </button>
-      {currentView === 'FORWARDERS' ? (
-        <ForwarderWorkspace />
-      ) : (
-        children
-      )}
+      <Header
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        activeReference={activeReference}
+        onSyncDossier={handleSyncDossier}
+        isSyncing={isSyncingDossier}
+        onViewChange={(v) => {
+          setCurrentView(v);
+          if (typeof window !== 'undefined' && window.setAppView) {
+            window.setAppView(v);
+          }
+        }}
+      />
+      <main className="flex-1 overflow-auto w-full h-full relative">
+        {currentView === 'RESULTADO' ? (
+          <TurnkeyProjectBuilder />
+        ) : (currentView === 'SEA_CHARTER' || currentView === 'SEA-CHARTER') ? (
+          <SeaCharterModule activeReference={activeReference} />
+        ) : currentView === 'LAND_CHARTER' ? (
+          <LandCharterModule activeReference={activeReference} />
+        ) : currentView === 'DATA_BRIDGE' ? (
+          <DataBridgeModule activeReference={activeReference} />
+        ) : currentView === 'FORWARDERS' ? (
+          <ForwarderWorkspace />
+        ) : (
+          children
+        )}
+      </main>
     </div>
   );
 }
@@ -748,4 +874,5 @@ export default function App(props) {
   );
 }
 
+export { Header, TurnkeyProjectBuilder, SeaCharterModule, LandCharterModule, DataBridgeModule };
 export { HashRouter, HashRouter as BrowserRouter };

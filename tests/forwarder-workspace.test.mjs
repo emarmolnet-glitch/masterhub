@@ -61,15 +61,18 @@ test('5. App.jsx conditionally renders ForwarderWorkspace when view is FORWARDER
   assert.match(appSource, /usePendingImoSync\(\)/);
 });
 
-test('6. index.html includes visual vertical separator and 💼 PROYECTOS button to the right of AUDITORIA', () => {
+test('6. index.html primary navigation excludes PROYECTOS button and contains strictly the 5 options', () => {
   const renderNavStart = indexHtmlSource.indexOf('function renderPrimaryNavigation()');
   const renderNavEnd = indexHtmlSource.indexOf('function updateMobileModuleNavLabel', renderNavStart);
   const renderNavSource = indexHtmlSource.slice(renderNavStart, renderNavEnd);
 
-  assert.match(renderNavSource, /tab-btn-forwarders/);
-  assert.match(renderNavSource, /💼 PROYECTOS/);
-  assert.match(renderNavSource, /w-px.*bg-slate-700/);
-  assert.match(renderNavSource, /switchTab\(['"]FORWARDERS['"]\)/);
+  assert.doesNotMatch(renderNavSource, /tab-btn-forwarders/);
+  assert.doesNotMatch(renderNavSource, /💼 PROYECTOS/);
+  assert.match(renderNavSource, /tab-btn-map/);
+  assert.match(renderNavSource, /tab-btn-resultado/);
+  assert.match(renderNavSource, /tab-btn-sea-charter/);
+  assert.match(renderNavSource, /tab-btn-land-charter/);
+  assert.match(renderNavSource, /tab-btn-databridge/);
 });
 
 test('7. index.html defines view-forwarders and switchTab hides other views (including 3D globe and INPUT GEOGRAFICO)', () => {

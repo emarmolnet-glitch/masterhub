@@ -114,6 +114,12 @@ export default function AgenteProyectosWidget({
     const raw = inputValue.trim();
     if (!raw || isAnalyzing) return;
 
+    if (typeof window !== 'undefined') {
+      window.setShowAdvancedModules?.(true);
+      window.dispatchEvent(new CustomEvent('seacharter:show-advanced-modules', { detail: { show: true } }));
+      window.dispatchEvent(new CustomEvent('assistant:order-submitted', { detail: { order: raw } }));
+    }
+
     setMessages(prev => [...prev, { sender: 'user', text: raw }]);
     setInputValue('');
     setIsAnalyzing(true);

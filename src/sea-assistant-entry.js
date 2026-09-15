@@ -1580,17 +1580,17 @@ function mountSeaAssistant() {
   root.className = "sca-root";
   root.setAttribute("aria-label", "Asistente inteligente de SeaCharter");
   root.innerHTML = `
-    <div class="sca-panel w-[400px] h-[550px] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden" id="sea-assistant-panel" role="dialog" aria-labelledby="sea-assistant-title" hidden>
-      <header class="sca-header flex justify-between items-center p-3 border-b bg-white rounded-t-xl">
-        <div class="sca-header-main flex items-center gap-2 min-w-0 cursor-pointer hover:bg-gray-50 p-1.5 rounded-md transition-colors" id="sea-assistant-ai-switcher" title="Clic para cambiar de asistente">
-          <span class="sca-presence-dot w-2.5 h-2.5 rounded-full bg-[#6366f1] shrink-0" id="sea-assistant-dot" aria-hidden="true"></span>
-          <h2 class="sca-title font-bold text-[14px]" id="sea-assistant-title">🧠 Cerebro.ia</h2>
-          <span style="font-size: 10px; color: #94a3b8; margin-left: 2px;">▼</span>
+    <div class="sca-panel w-[400px] h-[550px] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden left-6 bottom-24 origin-bottom-left" id="sea-assistant-panel" role="dialog" aria-labelledby="sea-assistant-title" hidden>
+      <header class="sca-header flex justify-between items-center p-3 border-b bg-indigo-600 text-white rounded-t-xl">
+        <div class="sca-header-main flex items-center gap-2 min-w-0 cursor-pointer hover:bg-indigo-700/60 p-1.5 rounded-md transition-colors text-white" id="sea-assistant-ai-switcher" title="Clic para cambiar de asistente">
+          <span class="sca-presence-dot w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" id="sea-assistant-dot" aria-hidden="true"></span>
+          <h2 class="sca-title font-bold text-[14px] text-white" id="sea-assistant-title">🧠 Cerebro.ia</h2>
+          <span style="font-size: 10px; color: #c7d2fe; margin-left: 2px;">▼</span>
         </div>
-        <div class="sca-header-actions flex gap-2 items-center">
-          <button class="sca-speech-toggle w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-600 transition-colors border-0 shrink-0" type="button" aria-label="Activar respuestas por voz" aria-pressed="false" title="Activar voz">${icons.speakerMuted}</button>
-          <button class="sca-minimize w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-600 transition-colors border-0 shrink-0" type="button" aria-label="Minimizar asistente" aria-expanded="true" title="Minimizar asistente">${icons.minimize}</button>
-          <button class="sca-close w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-600 transition-colors border-0 shrink-0" type="button" aria-label="Cerrar asistente" title="Cerrar asistente">${icons.close}</button>
+        <div class="sca-header-actions flex gap-2 items-center text-white">
+          <button class="sca-speech-toggle w-8 h-8 flex items-center justify-center rounded-md hover:bg-indigo-700 text-white transition-colors border-0 shrink-0" type="button" aria-label="Activar respuestas por voz" aria-pressed="false" title="Activar voz">${icons.speakerMuted}</button>
+          <button class="sca-minimize w-8 h-8 flex items-center justify-center rounded-md hover:bg-indigo-700 text-white transition-colors border-0 shrink-0" type="button" aria-label="Minimizar asistente" aria-expanded="true" title="Minimizar asistente">${icons.minimize}</button>
+          <button class="sca-close w-8 h-8 flex items-center justify-center rounded-md hover:bg-indigo-700 text-white transition-colors border-0 shrink-0" type="button" aria-label="Cerrar asistente" title="Cerrar asistente">${icons.close}</button>
         </div>
       </header>
       <div class="sca-history flex-1 overflow-y-auto p-4" aria-live="polite" aria-relevant="additions text">
@@ -2065,7 +2065,14 @@ const fileInput = root.querySelector("#sca-file-input");
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      if (!sendButton.disabled) form.requestSubmit();
+      if (!sendButton.disabled) {
+        if (typeof window !== "undefined") {
+          window.setShowAdvancedModules?.(true);
+          window.dispatchEvent(new CustomEvent("seacharter:show-advanced-modules", { detail: { show: true } }));
+          window.dispatchEvent(new CustomEvent("assistant:order-submitted", { detail: { order: input.value } }));
+        }
+        form.requestSubmit();
+      }
     }
   });
 
@@ -2074,6 +2081,12 @@ const fileInput = root.querySelector("#sca-file-input");
     const userText = input.value;
     if (!userText.trim() && pendingFiles.length === 0) return;
     if (pending) return;
+
+    if (typeof window !== "undefined") {
+      window.setShowAdvancedModules?.(true);
+      window.dispatchEvent(new CustomEvent("seacharter:show-advanced-modules", { detail: { show: true } }));
+      window.dispatchEvent(new CustomEvent("assistant:order-submitted", { detail: { order: userText } }));
+    }
 
     cancelSpeech();
     
