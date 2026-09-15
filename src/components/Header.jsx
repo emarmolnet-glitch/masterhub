@@ -74,13 +74,19 @@ export function Header({
         <button
           type="button"
           id="btn-sync-dossier"
-          onClick={onSyncDossier}
+          onClick={() => {
+            if (typeof onSyncDossier === 'function') {
+              onSyncDossier();
+            } else if (typeof window !== 'undefined' && typeof window.handleSyncDossier === 'function') {
+              window.handleSyncDossier();
+            }
+          }}
           disabled={isSyncing}
           title="Re-leer datos actualizados de Sea Charter y Land Charter bajo esta referencia"
-          className="ml-2 px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-blue-600/90 hover:bg-blue-600 text-white border border-blue-500/50 shadow flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-700 rounded-md transition-all cursor-pointer"
           aria-label="Actualizar datos del dossier"
         >
-          <span className={isSyncing ? 'animate-spin inline-block' : 'inline-block'}>🔄</span>
+          <i className="fa-solid fa-arrows-rotate"></i>
           <span>Actualizar</span>
         </button>
       </div>

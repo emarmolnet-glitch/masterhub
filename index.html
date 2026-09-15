@@ -8868,6 +8868,17 @@
                 <span class="text-slate-400 font-sans text-[10px] uppercase font-bold tracking-wider">Ref:</span>
                 <input type="text" id="quick-ref" class="bg-transparent font-mono text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 rounded px-1 w-36 transition-all" value="" oninput="syncQuickRef(this.value)" title="Referencia Única del Viaje / Contrato">
             </div>
+            <button
+                type="button"
+                id="btn-sync-dossier-native"
+                onclick="if (typeof window.handleSyncDossier === 'function') { window.handleSyncDossier(); } else if (typeof onSyncDossier === 'function') { onSyncDossier(); }"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-700 rounded-md transition-all cursor-pointer"
+                title="Actualizar datos del dossier"
+                aria-label="Actualizar datos del dossier"
+            >
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>Actualizar</span>
+            </button>
             <div class="tools-dropdown-container">
                 <button
                     type="button"
@@ -26830,6 +26841,27 @@ function createRouteAnchorElement(type) {
                 dataBridgeItem.appendChild(dataBridgeBtn);
                 mobileMenu.appendChild(dataBridgeItem);
             }
+
+            // Sincronizar botón Actualizar junto a Referencia Activa si existe cabecera nativa
+            const refContainer = document.getElementById('header-voyage-ref-container');
+            if (refContainer && !document.getElementById('btn-sync-dossier-native')) {
+                const syncBtn = document.createElement('button');
+                syncBtn.type = 'button';
+                syncBtn.id = 'btn-sync-dossier-native';
+                syncBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-700 rounded-md transition-all cursor-pointer';
+                syncBtn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i><span>Actualizar</span>';
+                syncBtn.title = 'Actualizar datos del dossier';
+                syncBtn.setAttribute('aria-label', 'Actualizar datos del dossier');
+                syncBtn.onclick = function() {
+                    if (typeof window.handleSyncDossier === 'function') {
+                        window.handleSyncDossier();
+                    } else if (typeof onSyncDossier === 'function') {
+                        onSyncDossier();
+                    }
+                };
+                refContainer.parentNode.insertBefore(syncBtn, refContainer.nextSibling);
+            }
+
             updateMobileModuleNavLabel(activeNavigationModuleId);
         }
 

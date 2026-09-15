@@ -725,20 +725,110 @@ export function AppLayout({ children, currentView: initialView = 'MAP', defaultH
     }
   };
 
+  const [orchestratorStatus, setOrchestratorStatus] = useState(null); // 'Calculando...' | null
+
   /**
-   * Delegación a Sub-Agentes (Orquestación en segundo plano):
-   * Esta será la función donde el Asistente de MasterHub enviará las órdenes
-   * a los motores de Sea Charter y Land Charter en segundo plano.
+   * Delegación a Sub-Agentes (Orquestación en segundo plano y Conexión Data Bridge API):
+   * Esta función procesa las órdenes del Asistente de MasterHub, envía la orden a la
+   * API externa de Data Bridge (cerebro-ia), coordina los cálculos en background,
+   * activa la pestaña RESULTADO tras recibir el OK y sincroniza el dossier.
    */
   const dispatchToSubAgents = async (promptPayload) => {
-    // TODO: Orquestación con agentes autónomos para delegar cálculo de flete marítimo (Sea Charter)
-    // y estimación de tarifas de transporte terrestre por carretera/ferrocarril (Land Charter).
     console.log('[MasterHub Orchestrator] Delegando tareas a sub-agentes:', promptPayload);
+
+    // a) Cambiar estado a "Calculando..." para feedback en UI y pequeño delay de procesamiento
+    setOrchestratorStatus('Calculando...');
+    await new Promise((r) => setTimeout(r, 1000));
+
+    const ref = activeReference || (typeof window !== 'undefined'
+      ? (window.extractCurrentVoyageReference?.() || window.ContractRefManager?.getActiveContractRef?.() || 'REF: RDM/2026-5647')
+      : 'REF: RDM/2026-5647');
+
+    const requestPayload = {
+      mensaje: promptPayload,
+      ref: ref,
+      modulo: 'masterhub'
+    };
+
+    let responseData = null;
+
+    try {
+      // b) Realizar fetch POST a la API de Data Bridge (cerebro-ia)
+      // Prioriza el endpoint directo de Data Bridge con fallback a la ruta de Netlify Functions
+      const externalEndpoint = 'https://calm-shortbread-55bcfc.netlify.app/api/cerebro-ia';
+      const localProxyEndpoint = getApiUrl('/api/cerebro-ia');
+
+      let response;
+      try {
+        response = await fetch(externalEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify(requestPayload)
+        });
+      } catch (fetchErr) {
+        console.warn('[MasterHub Orchestrator] Fallback a proxy local para cerebro-ia:', fetchErr);
+        response = await fetch(localProxyEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify(requestPayload)
+        });
+      }
+
+      // d) Al recibir la respuesta exitosa, inyectar los datos en el estado global o sincronizar con servidor
+      if (response && response.ok) {
+        try {
+          responseData = await response.json();
+          console.log('[MasterHub Orchestrator] Respuesta OK de Cerebro Data Bridge:', responseData);
+        } catch {
+          responseData = { ok: true };
+        }
+      } else {
+        console.warn('[MasterHub Orchestrator] La API externa respondió con estado no-OK, procediendo con fallback local:', response?.status);
+      }
+
+      if (typeof window !== 'undefined') {
+        if (responseData && window.ContractRefManager?.syncWithServer) {
+          await window.ContractRefManager.syncWithServer(ref).catch(() => {});
+        } else if (window.ContractRefManager?.syncWithServer) {
+          await window.ContractRefManager.syncWithServer(ref).catch(() => {});
+        }
+        if (responseData) {
+          window.__lastOrchestratorResult = responseData;
+          window.dispatchEvent(new CustomEvent('orchestrator:response-received', { detail: responseData }));
+        }
+      }
+    } catch (err) {
+      console.error('[MasterHub Orchestrator] Error en la conexión con la API de Data Bridge:', err);
+    } finally {
+      setOrchestratorStatus(null);
+    }
+
+    // e) Automatización Visual: Ejecutar inmediatamente setCurrentView('RESULTADO') para cambiar de pestaña
+    setCurrentView('RESULTADO');
+    if (typeof window !== 'undefined') {
+      if (typeof window.switchTab === 'function') {
+        window.switchTab('resultado');
+      }
+      if (typeof window.setAppView === 'function') {
+        window.setAppView('RESULTADO');
+      }
+    }
+
+    // f) Sincronización Automática: Llamar a handleSyncDossier() inmediatamente después del cambio de vista
+    await handleSyncDossier();
+
     return {
       status: 'dispatched',
-      reference: activeReference,
+      reference: ref,
       timestamp: Date.now(),
       payload: promptPayload,
+      data: responseData
     };
   };
 
@@ -753,8 +843,12 @@ export function AppLayout({ children, currentView: initialView = 'MAP', defaultH
     const handleShowAdvanced = (e) => {
       setShowAdvancedModules(e?.detail?.show ?? true);
     };
-    const handleAssistantOrder = () => {
+    const handleAssistantOrder = (event) => {
       setShowAdvancedModules(true);
+      const userOrder = (event && event.detail && event.detail.order !== undefined)
+        ? event.detail.order
+        : (event?.detail?.order || event?.detail || '');
+      dispatchToSubAgents(userOrder);
     };
     if (typeof window !== 'undefined') {
       window.addEventListener('seacharter:show-advanced-modules', handleShowAdvanced);
