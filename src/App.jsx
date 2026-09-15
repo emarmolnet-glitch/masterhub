@@ -669,6 +669,13 @@ export function useHeaderVisibility(defaultVisible = true) {
 }
 
 /**
+ * Generación Autónoma de Referencia Maestra (MasterHub = Source of Truth).
+ */
+export const generateMasterReference = () => {
+  return `RDM/${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+};
+
+/**
  * Main Application / Layout wrapper component for MasterHub Core PRO.
  */
 export function AppLayout({ children, currentView: initialView = 'MAP', defaultHeaderVisible = true }) {
@@ -680,15 +687,109 @@ export function AppLayout({ children, currentView: initialView = 'MAP', defaultH
   const { isHeaderVisible, toggleHeader } = useHeaderVisibility(defaultHeaderVisible);
   const [activeReference, setActiveReference] = useState(() => {
     if (typeof window !== 'undefined') {
-      return (
-        window.extractCurrentVoyageReference?.() ||
-        window.ContractRefManager?.getActiveContractRef?.() ||
-        ''
-      );
+      const fromUrl = new URLSearchParams(window.location?.search || '').get('ref');
+      const fromHash = window.location?.hash?.match(/ref=([^&]+)/)?.[1]
+        ? decodeURIComponent(window.location.hash.match(/ref=([^&]+)/)[1])
+        : '';
+      const fromLocal = window.localStorage?.getItem('active_contract_ref');
+      const fromSession = window.sessionStorage?.getItem('active_contract_ref');
+      const fromExtracted = window.extractCurrentVoyageReference?.();
+      const fromManager = window.ContractRefManager?.getActiveContractRef?.();
+
+      const existing = fromUrl || fromHash || fromLocal || fromSession || fromExtracted || fromManager;
+      if (existing && typeof existing === 'string' && existing.trim()) {
+        return existing.trim();
+      }
+      return generateMasterReference();
     }
-    return '';
+    return generateMasterReference();
   });
   const [isSyncingDossier, setIsSyncingDossier] = useState(false);
+
+  // En el useState o useEffect de inicialización:
+  useEffect(() => {
+    if (!activeReference) setActiveReference(generateMasterReference());
+  }, [activeReference]);
+
+  // Sincronización Bidireccional de Referencias (postMessage) desde Micro-frontends (Core Pro / Iframes)
+  useEffect(() => {
+    const handleIframeMessage = (event) => {
+      // Filtra mensajes irrelevantes de extensiones
+      if (!event.data || typeof event.data !== 'object') return;
+
+      let newRef = null;
+      // Intentar capturar la referencia de los distintos formatos de broadcast de Core Pro
+      if (event.data.type === 'SYNC_REFERENCE' || event.data.type === 'DOSSIER_UPDATED') {
+        newRef = event.data.reference || event.data.payload?.reference;
+      } else if (event.data.contractRef || event.data.activeReference) {
+        newRef = event.data.contractRef || event.data.activeReference;
+      } else if (event.data.reference) {
+        newRef = event.data.reference;
+      } else if (event.data.payload && typeof event.data.payload === 'object') {
+        newRef = event.data.payload.reference || event.data.payload.activeReference || event.data.payload.contractRef;
+      }
+
+      if (
+        newRef &&
+        typeof newRef === 'string' &&
+        (newRef.startsWith('REF: RDM/') || newRef.startsWith('RDM/')) &&
+        newRef !== activeReference
+      ) {
+        setActiveReference(newRef);
+
+        if (typeof window !== 'undefined') {
+          if (typeof window.syncActiveContractReference === 'function') {
+            try {
+              window.syncActiveContractReference(newRef);
+            } catch (_) {}
+          }
+          if (window.history?.replaceState && window.location?.href) {
+            try {
+              const currentUrl = new URL(window.location.href);
+              currentUrl.searchParams.set('ref', newRef);
+              window.history.replaceState(window.history.state, '', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+            } catch (_) {}
+          }
+        }
+      }
+    };
+
+    window.addEventListener('message', handleIframeMessage);
+    return () => window.removeEventListener('message', handleIframeMessage);
+  }, [activeReference]);
+
+  // Inyección Estricta a los Iframes (Top-Down / MasterHub = Source of Truth)
+  // MasterHub inyecta proactivamente su activeReference en el parámetro ?ref= de la URL de los Iframes cada vez que se renderizan
+  useEffect(() => {
+    if (!activeReference) return;
+
+    const iframeIds = [
+      'sea-charter-frame',
+      'native-sea-charter-frame',
+      'land-charter-frame',
+      'native-land-charter-frame',
+      'databridge-frame',
+      'native-databridge-frame'
+    ];
+
+    iframeIds.forEach((id) => {
+      const iframe = document.getElementById(id);
+      if (iframe && iframe.src) {
+        try {
+          const urlObj = new URL(iframe.src);
+          const currentQueryRef = urlObj.searchParams.get('ref');
+
+          // Solo actualizamos el src si la referencia es distinta para evitar bucles de recarga
+          if (currentQueryRef !== activeReference) {
+            urlObj.searchParams.set('ref', activeReference);
+            iframe.src = urlObj.toString();
+          }
+        } catch (e) {
+          // Si la URL es relativa o da error, ignorar de forma segura
+        }
+      }
+    });
+  }, [activeReference, currentView]);
 
   /**
    * Sincronización Manual del Dossier:
