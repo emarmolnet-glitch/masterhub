@@ -523,38 +523,98 @@ function findActionableAiField(fieldName) {
   )) || null;
 }
 
-async function selectActionableAiWpiRoute(pol, pod) {
+async function selectActionableAiWpiRoute(pol, pod, options = {}) {
+  const allowRawFallback = options?.allowRawFallback !== false;
   if (typeof window.selectFirstWpiAutocompleteMatch !== 'function') {
+    if (allowRawFallback) {
+      const fallbackPol = String(pol || '').trim();
+      const fallbackPod = String(pod || '').trim();
+      return {
+        pol: { source: 'RAW', officialLabel: fallbackPol, name: fallbackPol },
+        pod: { source: 'RAW', officialLabel: fallbackPod, name: fallbackPod },
+      };
+    }
     throw new Error('El selector validado de puertos todavía no está disponible.');
   }
 
   const selectPort = async (inputId, query) => {
-    const result = await window.selectFirstWpiAutocompleteMatch(inputId, query);
-    if (!result) throw new Error(`No se encontró un puerto validado para "${query}".`);
-
-    const latitude = Number(result.lat);
-    const longitude = Number(result.lon);
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-      throw new Error(`El puerto "${query}" no devolvió coordenadas válidas.`);
+    const rawQuery = String(query || '').trim();
+    if (!rawQuery) {
+      return {
+        source: 'RAW',
+        officialLabel: '',
+        name: '',
+        countryCode: '',
+        latitude: null,
+        longitude: null,
+      };
     }
 
-    return {
-      source: 'DATALASTIC',
-      officialLabel: result.label,
-      name: result.placeName,
-      countryCode: result.countryCode,
-      latitude,
-      longitude,
-      uuid: result.uuid || result.port?.uuid || '',
-      unlocode: result.unlocode || result.port?.unlocode || '',
-      indexNo: result.indexNo || result.port?.indexNo || null,
-      maxOperationalDraftMeters: Number(result.maxOperationalDraftMeters) || 0,
-      maxVesselLengthLabel: result.maxVesselLengthLabel || 'N/A',
-      engineeringSource: result.engineeringSource || 'N/A',
-      depthCode: result.depthCode || '',
-      cargoDepth: result.cargoDepth || '',
-      channelDepth: result.channelDepth || '',
-    };
+    try {
+      const result = await window.selectFirstWpiAutocompleteMatch(inputId, query);
+      if (!result) {
+        if (allowRawFallback) {
+          console.warn(`[WPI Autocomplete] Puerto "${query}" no encontrado en catálogo WPI/Datalastic. Fallback a string puro de IA.`);
+          return {
+            source: 'RAW',
+            officialLabel: query,
+            name: query,
+            countryCode: '',
+            latitude: null,
+            longitude: null,
+          };
+        }
+        throw new Error(`No se encontró un puerto validado para "${query}".`);
+      }
+
+      const latitude = Number(result.lat);
+      const longitude = Number(result.lon);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        if (allowRawFallback) {
+          console.warn(`[WPI Autocomplete] El puerto "${query}" no devolvió coordenadas válidas. Fallback a string puro de IA.`);
+          return {
+            source: 'RAW',
+            officialLabel: result.label || query,
+            name: result.placeName || query,
+            countryCode: result.countryCode || '',
+            latitude: null,
+            longitude: null,
+          };
+        }
+        throw new Error(`El puerto "${query}" no devolvió coordenadas válidas.`);
+      }
+
+      return {
+        source: 'DATALASTIC',
+        officialLabel: result.label,
+        name: result.placeName,
+        countryCode: result.countryCode,
+        latitude,
+        longitude,
+        uuid: result.uuid || result.port?.uuid || '',
+        unlocode: result.unlocode || result.port?.unlocode || '',
+        indexNo: result.indexNo || result.port?.indexNo || null,
+        maxOperationalDraftMeters: Number(result.maxOperationalDraftMeters) || 0,
+        maxVesselLengthLabel: result.maxVesselLengthLabel || 'N/A',
+        engineeringSource: result.engineeringSource || 'N/A',
+        depthCode: result.depthCode || '',
+        cargoDepth: result.cargoDepth || '',
+        channelDepth: result.channelDepth || '',
+      };
+    } catch (error) {
+      if (allowRawFallback) {
+        console.warn(`[WPI Autocomplete] Error validando puerto "${query}". Fallback resiliente a string puro de IA:`, error?.message || error);
+        return {
+          source: 'RAW',
+          officialLabel: query,
+          name: query,
+          countryCode: '',
+          latitude: null,
+          longitude: null,
+        };
+      }
+      throw error;
+    }
   };
 
   const selectedPol = await selectPort('port-pol', String(pol || '').trim());
@@ -712,7 +772,15 @@ async function executeActionableAiUpdateFields(actionObj) {
         let selectedRoutePorts = null;
 
         if (polQuery && podQuery) {
-            selectedRoutePorts = await selectActionableAiWpiRoute(polQuery, podQuery);
+            try {
+                selectedRoutePorts = await selectActionableAiWpiRoute(polQuery, podQuery);
+            } catch (portError) {
+                console.warn("⚠️ [Cerebro.ia/update_fields] Validación geográfica estricta falló. Fallback resiliente a strings puros de IA:", portError);
+                selectedRoutePorts = {
+                    pol: { source: 'RAW', officialLabel: polQuery, name: polQuery },
+                    pod: { source: 'RAW', officialLabel: podQuery, name: podQuery },
+                };
+            }
             p = {
                 ...p,
                 pol: selectedRoutePorts.pol.officialLabel,
@@ -720,7 +788,19 @@ async function executeActionableAiUpdateFields(actionObj) {
                 pol_port: selectedRoutePorts.pol,
                 pod_port: selectedRoutePorts.pod,
             };
+        } else if (polQuery || podQuery) {
+            p = {
+                ...p,
+                ...(polQuery ? { pol: polQuery } : {}),
+                ...(podQuery ? { pod: podQuery } : {}),
+            };
         }
+
+        // Inyección resiliente de POL y POD en inputs y sincronización
+        if (p.pol) updateInputs(["port-pol", "map-port-pol"], p.pol);
+        if (p.pod) updateInputs(["port-pod", "map-port-pod"], p.pod);
+        if (p.pol && typeof window.syncSelectedRoutePort === 'function') window.syncSelectedRoutePort('POL', p.pol);
+        if (p.pod && typeof window.syncSelectedRoutePort === 'function') window.syncSelectedRoutePort('POD', p.pod);
 
         // 1. INYECCIÓN DE DATOS BÁSICOS
         updateInputs(["cargo-qty", "cargo-quantity", "cargo-tonnage"], p.tonnage);
@@ -898,27 +978,40 @@ async function executeActionableAiUpdateFields(actionObj) {
 
         if (selectedRoutePorts) {
             if (typeof window.injectVoyageScenario !== 'function' || typeof window.finalizeAssistantVoyageInjection !== 'function') {
-                throw new Error('El motor de inyección de viaje todavía no está disponible.');
+                console.warn('El motor de inyección de viaje todavía no está disponible.');
+            } else {
+                const validatedScenario = {
+                    ...p,
+                    pol: selectedRoutePorts.pol.officialLabel,
+                    pod: selectedRoutePorts.pod.officialLabel,
+                    pol_port: selectedRoutePorts.pol,
+                    pod_port: selectedRoutePorts.pod,
+                    cargo_qty: Number(p.tonnage ?? p.cargo_qty ?? p.cargoQty) || 0,
+                    laydays: p.laydayStart ?? p.laydays,
+                    cancelling: p.cancelling,
+                    loading_rate: Number(p.loadingRate ?? p.loading_rate) || 0,
+                    discharge_rate: Number(p.dischargeRate ?? p.discharge_rate) || 0,
+                };
+                try {
+                    const injectionResult = window.injectVoyageScenario(validatedScenario, { deferFinalActions: true });
+                    await window.finalizeAssistantVoyageInjection(injectionResult, { forceRouteCalculation: true });
+                } catch (workflowError) {
+                    console.warn("⚠️ [Cerebro.ia/update_fields] Error no bloqueante en finalización de viaje o cálculo de ruta:", workflowError);
+                }
             }
-
-            const validatedScenario = {
-                ...p,
-                pol: selectedRoutePorts.pol.officialLabel,
-                pod: selectedRoutePorts.pod.officialLabel,
-                pol_port: selectedRoutePorts.pol,
-                pod_port: selectedRoutePorts.pod,
-                cargo_qty: Number(p.tonnage ?? p.cargo_qty ?? p.cargoQty) || 0,
-                laydays: p.laydayStart ?? p.laydays,
-                cancelling: p.cancelling,
-                loading_rate: Number(p.loadingRate ?? p.loading_rate) || 0,
-                discharge_rate: Number(p.dischargeRate ?? p.discharge_rate) || 0,
-            };
-            const injectionResult = window.injectVoyageScenario(validatedScenario, { deferFinalActions: true });
-            await window.finalizeAssistantVoyageInjection(injectionResult, { forceRouteCalculation: true });
         }
 
         if (!isMapView) {
             if (p.loadingRate || p.dischargeRate) window.recalcularDiasPuerto?.();
+        }
+
+        // 4. NAVEGACIÓN RESILIENTE A VISTA RESULTADO
+        const requestedView = String(p.view || p.targetView || p.currentView || p.tab || p.vista || "").trim().toUpperCase();
+        if (requestedView === 'RESULTADO' || requestedView === 'RESULT') {
+            if (typeof window.switchTab === 'function') window.switchTab('resultado');
+            if (typeof window.setAppView === 'function') window.setAppView('RESULTADO');
+            if (typeof window.setCurrentView === 'function') window.setCurrentView('RESULTADO');
+            window.dispatchEvent(new CustomEvent('seacharter:navigate-view', { detail: { view: 'RESULTADO' } }));
         }
         
         console.log("✅ [Cerebro.ia/update_fields] Inyección completada", p);
@@ -2408,8 +2501,18 @@ async function executeActionableAiAction(actionObj) {
         return executeActionableAiLocateVessel(actionObj);
     }
 
-    if (actionName === "update_fields" && typeof executeActionableAiUpdateFields === "function") {
-        return await executeActionableAiUpdateFields(actionObj);
+    if (actionName === "update_fields") {
+        if (typeof executeActionableAiUpdateFields !== "function") return false;
+        if (updateFieldsActionInProgress || processedUpdateFieldsActions.has(actionObj)) {
+            return false;
+        }
+        processedUpdateFieldsActions.add(actionObj);
+        updateFieldsActionInProgress = true;
+        try {
+            return await executeActionableAiUpdateFields(actionObj);
+        } finally {
+            updateFieldsActionInProgress = false;
+        }
     }
     if (actionName === "search_vessel" && typeof executeActionableAiSearchVessel === 'function') {
         return executeActionableAiSearchVessel(actionObj);
